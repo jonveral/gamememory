@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Memory</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+      padding: 10px;
+    }
+    #game-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 450px;
+      margin-top: 20px;
+    }
+    .card {
+      width: 100%;
+      height: 100px;
+      background-color: #ddd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 30px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+    .card.flipped {
+      background-color: #fff;
+    }
+    .card.matched {
+      background-color: #90ee90;
+    }
+    #message, #best-score, #restart-message {
+      font-size: 18px;
+      text-align: center;
+      margin: 10px;
+    }
+    #message {
+      font-weight: bold;
+    }
+    @media (max-width: 600px) {
+      .card {
+        height: 80px;
+        font-size: 24px;
+      }
+      #game-container {
+        grid-template-columns: repeat(4, 1fr);
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <p id="message">Tebak Pasangan Gambar!</p>
+  <p id="best-score">Best Score: --</p>
+  <p id="restart-message"></p>
+  <div id="game-container"></div>
+
+  <script>
+    const images = ['🍎', '🍌', '🍒', '🍇', '🍉', '🍓', '🍍', '🍋'];
+    let cards = [...images, ...images];
+    let flippedCards = [];
+    let matchedCards = [];
+    let moves = 0;
+    let bestScore = sessionStorage.getItem('bestScore') ? parseInt(sessionStorage.getItem('bestScore')) : -1;
+
+    // Shuffle function to randomize the cards
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // Create the game board
+    function createBoard() {
+      cards = shuffle([...images, ...images]);
+      const gameContainer = document.getElementById('game-container');
+      cards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.dataset.index = index;
+        cardElement.dataset.value = card;
+        cardElement.addEventListener('click', () => flipCard(cardElement));
+        gameContainer.appendChild(cardElement);
+      });
+    }
+
+    // Flip the card and check for a match
+    function flipCard(cardElement) {
+      if (flippedCards.length < 2 && !cardElement.classList.contains('flipped') && !cardElement.classList.contains('matched')) {
+        cardElement.classList.add('flipped');
+        cardElement.textContent = cardElement.dataset.value;
+        flippedCards.push(cardElement);
+
+        if (flippedCards.length === 2) {
+          moves++;
+          checkMatch();
+        }
+      }
+    }
+
+    // Check if the flipped cards match
+    function checkMatch() {
+      const [card1, card2] = flippedCards;
+      if (card1.dataset.value === card2.dataset.value) {
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        matchedCards.push(card1, card2);
+      } else {
+        setTimeout(() => {
+          card1.classList.remove('flipped');
+          card2.classList.remove('flipped');
+          card1.textContent = '';
+          card2.textContent = '';
+        }, 1000);
+      }
+
+      flippedCards = [];
+
+      // Check if the game is over
+      if (matchedCards.length === cards.length) {
+        if (moves < bestScore || bestScore === -1) {
+          bestScore = moves;
+          sessionStorage.setItem('bestScore', bestScore); // Save new best score in sessionStorage
+        }
+        document.getElementById('message').textContent = `Selamat! Anda menyelesaikan permainan dengan ${moves} langkah.`;
+        document.getElementById('best-score').textContent = `Best Score: ${bestScore}`;
+        document.getElementById('restart-message').textContent = 'Teken Enter untuk bermain lagi!';
+      }
+    }
+
+    // Restart the game when the player presses Enter
+    window.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        restartGame();
+      }
+    });
+
+    // Restart the game
+    function restartGame() {
+      cards = shuffle([...images, ...images]); // Shuffle and reset the cards
+      flippedCards = [];
+      matchedCards = [];
+      moves = 0;
+      document.getElementById('message').textContent = 'Tebak Pasangan Gambar!';
+      document.getElementById('restart-message').textContent = ''; // Hide the restart message
+      document.getElementById('game-container').innerHTML = '';
+      createBoard();
+    }
+
+    // Initialize the game
+    createBoard();
+    document.getElementById('best-score').textContent = bestScore === -1 ? "Best Score: Main dulu KOCAK" : `Best Score: ${bestScore}`;
+  </script>
+
+</body>
+</html>
